@@ -574,6 +574,48 @@ async function handleAdminToken(request: Request, env: Env) {
   });
 }
 
+async function handleDebugConfig(request: Request, env: Env) {
+  const config = await getPayConfig(env);
+  if (!canManage(request, config)) return json({ error: "Unauthorized" }, { status: 401 });
+
+  const key = config.epayKey || "";
+  return json({
+    ok: true,
+    epayPid: config.epayPid,
+    epayUrl: config.epayUrl,
+    epayKeyLength: key.length,
+    epayKeyPrefix: key.slice(0, 5),
+    epayKeySuffix: key.slice(-5),
+    encrypted: Boolean(config.encryptedEpayKey),
+    bound: isBound(config),
+    configured: isInitialized(config),
+  });
+}
+
+async function handleDebugSign(request: Request, env: Env) {
+  const config = await getPayConfig(env);
+  if (!canManage(request, config)) return json({ error: "Unauthorized" }, { status: 401 });
+
+  const url = new URL(request.url);
+  const params: Record<string, string> = {};
+  for (const [name, value] of url.searchParams.entries()) {
+    if (name !== "token") params[name] = value;
+  }
+  const sorted = Object.entries(params)
+    .filter(([name, value]) => value !== "" && name !== "sign" && name !== "sign_type")
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([name, value]) => `${name}=${value}`)
+    .join("&");
+
+  return json({
+    ok: true,
+    sorted,
+    sign: md5Hex(`${sorted}${config.epayKey}`),
+    epayKeyPrefix: config.epayKey.slice(0, 5),
+    epayKeySuffix: config.epayKey.slice(-5),
+  });
+}
+
 async function maybeServeVerifyFile(request: Request, env: Env) {
   const url = new URL(request.url);
   const config = await getPayConfig(env);
@@ -628,6 +670,14 @@ export default {
 
       if (url.pathname === "/api/admin-token" && request.method === "POST") {
         return handleAdminToken(request, env);
+      }
+
+      if (url.pathname === "/api/debug/config") {
+        return handleDebugConfig(request, env);
+      }
+
+      if (url.pathname === "/api/debug/sign") {
+        return handleDebugSign(request, env);
       }
 
       if (url.pathname === "/pay") {
