@@ -395,10 +395,16 @@ async function handleCallback(request: Request, env: Env, provider: string) {
   if (!skgCallbackUrl) return badRequest("skg_callback_url is required");
 
   const skgResult = await forwardToSkg(payment, skgCallbackUrl);
+  if (skgResult.ok) {
+    return new Response("success", {
+      status: 200,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
   return json({
-    ok: skgResult.ok,
+    ok: false,
     status: skgResult.status,
-  }, { status: skgResult.ok ? 200 : 502 });
+  }, { status: 502 });
 }
 
 async function handleSaveConfig(request: Request, env: Env) {
