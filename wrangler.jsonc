@@ -8,10 +8,14 @@
   },
   "secrets": {
     "required": [
-      "EPAY_KEY"
+      "ADMIN_TOKEN"
     ]
   },
-  "vars": {
-    "EPAY_PID": "YOUR_EPAY_PID"
-  }
+  "kv_namespaces": [
+    {
+      "binding": "PAY_CONFIG",
+      "id": "replace-with-your-kv-namespace-id"
+    }
+  ],
+  "vars": {}
 }

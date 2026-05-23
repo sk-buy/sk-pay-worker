@@ -1,9 +1,19 @@
 export interface Env {
+  ADMIN_TOKEN: string;
   EPAY_PID: string;
   EPAY_KEY: string;
+  PAY_CONFIG: KVNamespace;
 }
 
 type ProviderPayload = Record<string, string>;
+
+interface PayConfig {
+  epayPid: string;
+  epayKey: string;
+  epayUrl: string;
+  verifyPath: string;
+  verifyContent: string;
+}
 
 interface NormalizedPayment {
   order_id: string;
@@ -28,10 +38,88 @@ function badRequest(message: string) {
   return json({ error: message }, { status: 400 });
 }
 
+function html(body: string, init: ResponseInit = {}) {
+  return new Response(body, {
+    ...init,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      ...(init.headers || {}),
+    },
+  });
+}
+
 function getRequiredEnv(env: Env, key: keyof Env) {
   const value = String(env[key] || "").trim();
   if (!value) throw new Error(`Missing env: ${key}`);
   return value;
+}
+
+async function getPayConfig(env: Env): Promise<PayConfig> {
+  const stored = await env.PAY_CONFIG.get("pay_config", "json") as Partial<PayConfig> | null;
+  return {
+    epayPid: String(stored?.epayPid || env.EPAY_PID || ""),
+    epayKey: String(stored?.epayKey || env.EPAY_KEY || ""),
+    epayUrl: String(stored?.epayUrl || ""),
+    verifyPath: String(stored?.verifyPath || ""),
+    verifyContent: String(stored?.verifyContent || ""),
+  };
+}
+
+async function savePayConfig(env: Env, config: PayConfig) {
+  await env.PAY_CONFIG.put("pay_config", JSON.stringify(config));
+}
+
+function isAdmin(request: Request, env: Env) {
+  const url = new URL(request.url);
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || url.searchParams.get("token") || "";
+  return token && token === env.ADMIN_TOKEN;
+}
+
+function renderAdminPage(config: PayConfig, origin: string) {
+  const escaped = (value: string) => value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
+  return html(`<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SK Pay Worker</title>
+  <style>
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a}
+    main{max-width:860px;margin:0 auto;padding:32px 18px}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.06);padding:22px}
+    h1{font-size:22px;margin:0 0 8px}.muted{color:#64748b;font-size:14px;line-height:1.7}
+    label{display:grid;gap:8px;margin-top:16px;font-size:14px;font-weight:700}
+    input,textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:12px;padding:11px 12px;font:inherit}
+    textarea{min-height:120px;resize:vertical}
+    button{margin-top:18px;border:0;border-radius:12px;background:#7c3aed;color:#fff;font-weight:800;padding:12px 16px;cursor:pointer}
+    code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:2px 6px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>SK Pay Worker 设置</h1>
+      <p class="muted">将 EPay 授权域名填写为：<code>${origin.replace(/^https?:\/\//, "")}</code>。验证文件保存后，可直接访问对应 URL。</p>
+      <form method="post" action="/api/config">
+        <div class="grid">
+          <label>EPAY_PID<input name="epayPid" value="${escaped(config.epayPid)}" required /></label>
+          <label>EPAY_KEY<input name="epayKey" value="${escaped(config.epayKey)}" required /></label>
+        </div>
+        <label>EPAY_URL<input name="epayUrl" value="${escaped(config.epayUrl)}" placeholder="https://pay.example.com/submit.php" required /></label>
+        <label>验证文件路径<input name="verifyPath" value="${escaped(config.verifyPath)}" placeholder="/abcdef.txt" /></label>
+        <label>验证文件内容<textarea name="verifyContent">${escaped(config.verifyContent)}</textarea></label>
+        <input type="hidden" name="token" value="" />
+        <button type="submit">保存设置</button>
+      </form>
+    </div>
+  </main>
+  <script>
+    const token = new URLSearchParams(location.search).get("token") || "";
+    document.querySelector('input[name="token"]').value = token;
+  </script>
+</body>
+</html>`);
 }
 
 function normalizeStatus(value: string): NormalizedPayment["status"] {
@@ -75,7 +163,7 @@ async function readProviderPayload(request: Request): Promise<ProviderPayload> {
   return payload;
 }
 
-function normalizePayment(provider: string, payload: ProviderPayload, env: Env): NormalizedPayment {
+function normalizePayment(provider: string, payload: ProviderPayload): NormalizedPayment {
   const orderId = pick(payload, ["order_id", "out_trade_no", "outTradeNo", "orderNo", "order"]);
   const amount = pick(payload, ["amount", "money", "total_amount", "totalAmount", "price"]);
   const status = pick(payload, ["status", "trade_status", "tradeStatus", "state"]) || "paid";
@@ -218,14 +306,15 @@ async function forwardToSkg(payment: NormalizedPayment, skgCallbackUrl: string) 
   };
 }
 
-function buildPaymentRedirect(request: Request, env: Env) {
+async function buildPaymentRedirect(request: Request, env: Env) {
   const url = new URL(request.url);
+  const config = await getPayConfig(env);
   const orderId = url.searchParams.get("order_id") || "";
   const amount = url.searchParams.get("amount") || "";
   const name = url.searchParams.get("name") || `SKG Order ${orderId}`;
   const notifyUrl = url.searchParams.get("notify_url") || "";
   const returnUrl = url.searchParams.get("return_url") || "";
-  const paymentUrl = url.searchParams.get("payment_url") || "";
+  const paymentUrl = url.searchParams.get("payment_url") || config.epayUrl;
   const type = url.searchParams.get("type") || "alipay";
   const siteName = url.searchParams.get("sitename") || "SKG";
 
@@ -234,8 +323,10 @@ function buildPaymentRedirect(request: Request, env: Env) {
   if (!paymentUrl) return badRequest("payment_url is required");
   if (!notifyUrl) return badRequest("notify_url is required");
 
-  const pid = getRequiredEnv(env, "EPAY_PID");
-  const key = getRequiredEnv(env, "EPAY_KEY");
+  const pid = config.epayPid;
+  const key = config.epayKey;
+  if (!pid) return badRequest("EPAY_PID is not configured");
+  if (!key) return badRequest("EPAY_KEY is not configured");
   const params: Record<string, string> = {
     pid,
     type,
@@ -259,7 +350,7 @@ function buildPaymentRedirect(request: Request, env: Env) {
 
 async function handleCallback(request: Request, env: Env, provider: string) {
   const payload = await readProviderPayload(request);
-  const payment = normalizePayment(provider, payload, env);
+  const payment = normalizePayment(provider, payload);
   const skgCallbackUrl = pick(payload, ["skg_callback_url", "skgCallbackUrl"]);
 
   if (!payment.order_id) return badRequest("order_id is required");
@@ -273,17 +364,66 @@ async function handleCallback(request: Request, env: Env, provider: string) {
   }, { status: skgResult.ok ? 200 : 502 });
 }
 
+async function handleSaveConfig(request: Request, env: Env) {
+  const form = await request.formData();
+  const token = String(form.get("token") || "");
+  if (token !== env.ADMIN_TOKEN) return json({ error: "Unauthorized" }, { status: 401 });
+
+  const config: PayConfig = {
+    epayPid: String(form.get("epayPid") || "").trim(),
+    epayKey: String(form.get("epayKey") || "").trim(),
+    epayUrl: String(form.get("epayUrl") || "").trim(),
+    verifyPath: String(form.get("verifyPath") || "").trim(),
+    verifyContent: String(form.get("verifyContent") || ""),
+  };
+
+  if (!config.epayPid) return badRequest("EPAY_PID is required");
+  if (!config.epayKey) return badRequest("EPAY_KEY is required");
+  if (!config.epayUrl) return badRequest("EPAY_URL is required");
+
+  await savePayConfig(env, config);
+  return html("<script>alert('保存成功');location.href='/admin?token='+encodeURIComponent(new URLSearchParams(location.search).get('token')||'')</script>");
+}
+
+async function maybeServeVerifyFile(request: Request, env: Env) {
+  const url = new URL(request.url);
+  const config = await getPayConfig(env);
+  if (!config.verifyPath || !config.verifyContent) return null;
+  const normalizedPath = config.verifyPath.startsWith("/") ? config.verifyPath : `/${config.verifyPath}`;
+  if (url.pathname !== normalizedPath) return null;
+  return new Response(config.verifyContent, {
+    headers: { "content-type": "text/plain; charset=utf-8" },
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
       const url = new URL(request.url);
 
+      const verifyResponse = await maybeServeVerifyFile(request, env);
+      if (verifyResponse) return verifyResponse;
+
       if (url.pathname === "/health") {
-        return json({ ok: true, service: "sk-buy/pay-worker" });
+        const config = await getPayConfig(env);
+        return json({
+          ok: true,
+          service: "sk-buy/pay-worker",
+          configured: Boolean(config.epayPid && config.epayKey && config.epayUrl),
+        });
+      }
+
+      if (url.pathname === "/admin") {
+        if (!isAdmin(request, env)) return json({ error: "Unauthorized" }, { status: 401 });
+        return renderAdminPage(await getPayConfig(env), url.origin);
+      }
+
+      if (url.pathname === "/api/config" && request.method === "POST") {
+        return handleSaveConfig(request, env);
       }
 
       if (url.pathname === "/pay") {
-        return buildPaymentRedirect(request, env);
+        return await buildPaymentRedirect(request, env);
       }
 
       const callbackMatch = url.pathname.match(/^\/callback\/([^/]+)$/);

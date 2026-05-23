@@ -8,16 +8,13 @@ Cloudflare Workers payment bridge for SKG / sk-buy ecosystem.
 
 This worker lets a small supplier connect their own payment page to SKG without giving payment secrets to SKG.
 
-The worker only stores two EPay values: `EPAY_PID` and `EPAY_KEY`. The EPay submit URL is stored in SKG and supplied for each payment request.
+The worker includes a setup page. After deployment, the supplier creates a new EPay channel for their `workers.dev` domain, then fills EPay settings and verification file content in the worker setup page.
 
 ## One-click Deploy
 
-Click the button above and fill in your own EPay parameters:
+Click the button above and deploy the worker.
 
-```text
-EPAY_PID
-EPAY_KEY
-```
+Only `ADMIN_TOKEN` is required during deployment. It protects the setup page.
 
 After deployment, open:
 
@@ -26,6 +23,30 @@ https://your-worker-name.your-account.workers.dev/health
 ```
 
 If it returns `{"ok":true}`, copy the Worker URL back to SKG.
+
+## EPay Setup
+
+Open:
+
+```text
+https://your-worker-name.your-account.workers.dev/admin?token=YOUR_ADMIN_TOKEN
+```
+
+Fill in:
+
+```text
+EPAY_PID
+EPAY_KEY
+EPAY_URL
+verification file path
+verification file content
+```
+
+Use this as the EPay authorized domain:
+
+```text
+your-worker-name.your-account.workers.dev
+```
 
 ## Routes
 
@@ -38,7 +59,7 @@ POST /callback/:provider
 ## Required Secret
 
 ```bash
-wrangler secret put EPAY_KEY
+wrangler secret put ADMIN_TOKEN
 ```
 
 ## Local Dev
@@ -57,10 +78,10 @@ npm run deploy
 ## Environment Variables
 
 ```text
-EPAY_PID          EPay merchant ID
+ADMIN_TOKEN       Admin token for the setup page
 ```
 
-`EPAY_KEY` must be stored as a Cloudflare secret.
+EPay settings are saved into Cloudflare KV from the worker setup page.
 
 ## Callback Format Sent To SKG
 

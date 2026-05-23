@@ -15,11 +15,11 @@
   },
   "cloudflare": {
     "bindings": {
-      "EPAY_PID": {
-        "description": "易支付商户 ID。该值保存在你的 Cloudflare Worker 中，SKG 不获取。"
+      "ADMIN_TOKEN": {
+        "description": "Worker 设置页面管理口令。部署完成后通过 `/admin?token=...` 打开设置页面。"
       },
-      "EPAY_KEY": {
-        "description": "易支付商户密钥。它会作为 Cloudflare Secret 保存，SKG 不获取。"
+      "PAY_CONFIG": {
+        "description": "保存 EPay 参数和验证文件内容的 KV Namespace。"
       }
     }
   }
