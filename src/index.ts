@@ -405,7 +405,7 @@ function md5Hex(input: string) {
 function buildEpaySignature(params: Record<string, string>, key: string) {
   const sorted = Object.entries(params)
     .filter(([name, value]) => value !== "" && name !== "sign" && name !== "sign_type")
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([name, value]) => `${name}=${value}`)
     .join("&");
   return md5Hex(`${sorted}${key}`);
@@ -415,7 +415,7 @@ function normalizeEpaySubmitUrl(paymentUrl: string) {
   const target = new URL(paymentUrl);
   const path = target.pathname.replace(/\/+$/, "");
   if (!path || path === "/epay") {
-    target.pathname = `${path || ""}/submit.php`.replace(/^\/?/, "/");
+    target.pathname = `${path || ""}/submit`.replace(/^\/?/, "/");
   }
   return target;
 }
@@ -450,7 +450,6 @@ async function buildPaymentRedirect(request: Request, env: Env) {
   const returnUrl = url.searchParams.get("return_url") || "";
   const paymentUrl = url.searchParams.get("payment_url") || config.epayUrl;
   const type = url.searchParams.get("type") || "alipay";
-  const siteName = url.searchParams.get("sitename") || "SKG";
 
   if (!orderId) return badRequest("order_id is required");
   if (!amount) return badRequest("amount is required");
@@ -469,7 +468,6 @@ async function buildPaymentRedirect(request: Request, env: Env) {
     return_url: returnUrl || notifyUrl,
     name,
     money: amount,
-    sitename: siteName,
   };
   params.sign = buildEpaySignature(params, key);
   params.sign_type = "MD5";
