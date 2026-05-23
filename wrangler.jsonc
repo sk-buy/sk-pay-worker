@@ -12,7 +12,6 @@
     ]
   },
   "vars": {
-    "EPAY_PID": "YOUR_EPAY_PID",
-    "EPAY_URL": "https://your-epay.example.com/submit.php"
+    "EPAY_PID": "YOUR_EPAY_PID"
   }
 }

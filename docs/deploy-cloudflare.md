@@ -13,7 +13,6 @@ Fill in your own EPay parameters:
 ```text
 EPAY_PID
 EPAY_KEY
-EPAY_URL
 ```
 
 After deployment, visit:
@@ -38,10 +37,10 @@ npm install
 npx wrangler login
 ```
 
-3. Set the SKG callback secret:
+3. Set the EPay merchant key:
 
 ```bash
-npx wrangler secret put SKG_CALLBACK_SECRET
+npx wrangler secret put EPAY_KEY
 ```
 
 4. Edit `wrangler.jsonc`:
@@ -49,8 +48,7 @@ npx wrangler secret put SKG_CALLBACK_SECRET
 ```jsonc
 {
   "vars": {
-    "EPAY_PID": "your-epay-pid",
-    "EPAY_URL": "https://your-epay.example.com/submit.php"
+    "EPAY_PID": "your-epay-pid"
   }
 }
 ```

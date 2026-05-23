@@ -1,7 +1,6 @@
 export interface Env {
   EPAY_PID: string;
   EPAY_KEY: string;
-  EPAY_URL: string;
 }
 
 type ProviderPayload = Record<string, string>;
@@ -226,11 +225,13 @@ function buildPaymentRedirect(request: Request, env: Env) {
   const name = url.searchParams.get("name") || `SKG Order ${orderId}`;
   const notifyUrl = url.searchParams.get("notify_url") || "";
   const returnUrl = url.searchParams.get("return_url") || "";
+  const paymentUrl = url.searchParams.get("payment_url") || "";
   const type = url.searchParams.get("type") || "alipay";
   const siteName = url.searchParams.get("sitename") || "SKG";
 
   if (!orderId) return badRequest("order_id is required");
   if (!amount) return badRequest("amount is required");
+  if (!paymentUrl) return badRequest("payment_url is required");
   if (!notifyUrl) return badRequest("notify_url is required");
 
   const pid = getRequiredEnv(env, "EPAY_PID");
@@ -248,7 +249,7 @@ function buildPaymentRedirect(request: Request, env: Env) {
   params.sign = buildEpaySignature(params, key);
   params.sign_type = "MD5";
 
-  const target = new URL(getRequiredEnv(env, "EPAY_URL"));
+  const target = new URL(paymentUrl);
   for (const [paramKey, value] of Object.entries(params)) {
     target.searchParams.set(paramKey, value);
   }

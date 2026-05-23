@@ -8,7 +8,7 @@ Cloudflare Workers payment bridge for SKG / sk-buy ecosystem.
 
 This worker lets a small supplier connect their own payment page to SKG without giving payment secrets to SKG.
 
-The worker only stores three EPay values: `EPAY_PID`, `EPAY_KEY`, and `EPAY_URL`. Other order and callback data are supplied by SKG for each payment request.
+The worker only stores two EPay values: `EPAY_PID` and `EPAY_KEY`. The EPay submit URL is stored in SKG and supplied for each payment request.
 
 ## One-click Deploy
 
@@ -17,7 +17,6 @@ Click the button above and fill in your own EPay parameters:
 ```text
 EPAY_PID
 EPAY_KEY
-EPAY_URL
 ```
 
 After deployment, open:
@@ -32,7 +31,7 @@ If it returns `{"ok":true}`, copy the Worker URL back to SKG.
 
 ```text
 GET  /health
-GET  /pay?order_id=...&amount=...&notify_url=...
+GET  /pay?order_id=...&amount=...&payment_url=...&notify_url=...
 POST /callback/:provider
 ```
 
@@ -59,7 +58,6 @@ npm run deploy
 
 ```text
 EPAY_PID          EPay merchant ID
-EPAY_URL          EPay submit URL
 ```
 
 `EPAY_KEY` must be stored as a Cloudflare secret.
