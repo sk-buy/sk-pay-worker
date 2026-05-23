@@ -6,9 +6,14 @@
   "observability": {
     "enabled": true
   },
+  "secrets": {
+    "required": [
+      "SKG_CALLBACK_SECRET"
+    ]
+  },
   "vars": {
-    "SUPPLIER_ID": "SUPPLIER_DEMO",
+    "SUPPLIER_ID": "SKG_SUPPLIER_ID",
     "SKG_CALLBACK_URL": "https://skg.sk-buy.com/api/skg/payment/callback",
-    "PAYMENT_PAGE_URL": "https://pay.example.com/order"
+    "PAYMENT_PAGE_URL": "https://your-payment-site.example.com/order"
   }
 }

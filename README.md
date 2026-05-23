@@ -1,8 +1,30 @@
 # SK Pay Worker
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/sk-buy/pay-worker)
+
 Cloudflare Workers payment bridge for SKG / sk-buy ecosystem.
 
 This worker lets a small supplier connect their own payment page to SKG without giving payment secrets to SKG.
+
+## One-click Deploy
+
+Click the button above and fill in the values copied from SKG:
+
+```text
+SUPPLIER_ID
+PAYMENT_PAGE_URL
+SKG_CALLBACK_SECRET
+```
+
+`SKG_CALLBACK_URL` can usually keep the default value.
+
+After deployment, open:
+
+```text
+https://your-worker-name.your-account.workers.dev/health
+```
+
+If it returns `{"ok":true}`, copy the Worker URL back to SKG.
 
 ## Routes
 

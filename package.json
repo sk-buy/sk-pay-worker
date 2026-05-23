@@ -12,5 +12,21 @@
     "@cloudflare/workers-types": "^4.20260523.0",
     "typescript": "^5.8.3",
     "wrangler": "^4.18.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "SUPPLIER_ID": {
+        "description": "从 SKG 支付设置页面复制供应方 ID，例如 `SUP_xxx`。"
+      },
+      "SKG_CALLBACK_URL": {
+        "description": "SKG 支付回调地址，默认使用官方地址：`https://skg.sk-buy.com/api/skg/payment/callback`。"
+      },
+      "PAYMENT_PAGE_URL": {
+        "description": "你的支付页面地址。采购方打开 SKG 支付链接后会跳转到这里。"
+      },
+      "SKG_CALLBACK_SECRET": {
+        "description": "从 SKG 支付设置页面复制回调密钥。它会作为 Cloudflare Secret 保存，不会公开显示。"
+      }
+    }
   }
 }
