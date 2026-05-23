@@ -1,5 +1,7 @@
 import { md5 } from "js-md5";
 
+const DEFAULT_SKG_CALLBACK_URL = "https://skg.sk-buy.com/api/skg/payment/callback";
+
 export interface Env {
   EPAY_PID: string;
   EPAY_KEY: string;
@@ -424,11 +426,10 @@ async function buildPaymentRedirect(request: Request, env: Env) {
 async function handleCallback(request: Request, env: Env, provider: string) {
   const payload = await readProviderPayload(request);
   const payment = normalizePayment(provider, payload);
-  const skgCallbackUrl = pick(payload, ["skg_callback_url", "skgCallbackUrl"]);
+  const skgCallbackUrl = pick(payload, ["skg_callback_url", "skgCallbackUrl"]) || DEFAULT_SKG_CALLBACK_URL;
 
   if (!payment.order_id) return badRequest("order_id is required");
   if (!payment.amount) return badRequest("amount is required");
-  if (!skgCallbackUrl) return badRequest("skg_callback_url is required");
 
   const skgResult = await forwardToSkg(payment, skgCallbackUrl);
   if (skgResult.ok) {
