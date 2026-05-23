@@ -1,6 +1,7 @@
 import { md5 } from "js-md5";
 
 const DEFAULT_SKG_CALLBACK_URL = "https://skg.sk-buy.com/api/skg/payment/callback";
+const DEFAULT_SKG_RETURN_URL = "https://skg.sk-buy.com/api/skg/payment/return";
 
 export interface Env {
   EPAY_PID: string;
@@ -257,13 +258,19 @@ function renderPaymentReturnPage(request: Request) {
   const orderId = url.searchParams.get("out_trade_no") || "";
   const tradeNo = url.searchParams.get("trade_no") || "";
   const paid = status === "TRADE_SUCCESS";
+  const skgReturnUrl = new URL(DEFAULT_SKG_RETURN_URL);
+  for (const [key, value] of url.searchParams.entries()) {
+    skgReturnUrl.searchParams.set(key, value);
+  }
   const escaped = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  const escapedReturnUrl = escaped(skgReturnUrl.toString());
 
   return html(`<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="1;url=${escapedReturnUrl}" />
   <title>SK Pay Worker 支付结果</title>
   <style>
     body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a}
@@ -280,9 +287,11 @@ function renderPaymentReturnPage(request: Request) {
       <h1>${paid ? "支付成功" : "支付结果待确认"}</h1>
       <p>订单号：<code>${escaped(orderId)}</code></p>
       <p>平台流水：<code>${escaped(tradeNo)}</code></p>
-      <p>该页面是同步返回结果，最终状态以异步通知入账为准。</p>
+      <p>正在返回 SKG，最终状态以异步通知入账为准。</p>
+      <p><a href="${escapedReturnUrl}">立即返回 SKG</a></p>
     </div>
   </main>
+  <script>location.replace(${JSON.stringify(skgReturnUrl.toString())});</script>
 </body>
 </html>`);
 }
