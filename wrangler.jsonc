@@ -8,12 +8,15 @@
   },
   "secrets": {
     "required": [
-      "SKG_CALLBACK_SECRET"
+      "SKG_CALLBACK_SECRET",
+      "EPAY_KEY"
     ]
   },
   "vars": {
     "SUPPLIER_ID": "SKG_SUPPLIER_ID",
     "SKG_CALLBACK_URL": "https://skg.sk-buy.com/api/skg/payment/callback",
-    "PAYMENT_PAGE_URL": "https://your-payment-site.example.com/order"
+    "EPAY_PID": "YOUR_EPAY_PID",
+    "EPAY_TYPE": "alipay",
+    "SITE_NAME": "SKG"
   }
 }

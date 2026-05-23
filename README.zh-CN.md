@@ -8,14 +8,24 @@ SKG / sk-buy 生态的 Cloudflare Workers 支付桥接器。
 
 它用于让小型供应方把自己的支付页面接入 SKG，同时不需要把支付密钥交给 SKG。
 
+支付网关链接由 SKG 保存并签名下发，Worker 只保存供应方自己的支付参数，例如易支付商户 ID 和商户密钥。
+
 ## 一键部署
 
 点击上方按钮，然后填写从 SKG 复制的参数：
 
 ```text
 SUPPLIER_ID
-PAYMENT_PAGE_URL
 SKG_CALLBACK_SECRET
+```
+
+再填写你自己的易支付参数：
+
+```text
+EPAY_PID
+EPAY_KEY
+EPAY_TYPE
+SITE_NAME
 ```
 
 `SKG_CALLBACK_URL` 通常保持默认值即可。
@@ -32,7 +42,7 @@ https://你的-worker-name.你的账号.workers.dev/health
 
 ```text
 GET  /health
-GET  /pay?order_id=...&amount=...&sig=...
+GET  /pay?order_id=...&amount=...&payment_url=...&notify_url=...&sig=...
 POST /callback/:provider
 ```
 
@@ -40,6 +50,7 @@ POST /callback/:provider
 
 ```bash
 wrangler secret put SKG_CALLBACK_SECRET
+wrangler secret put EPAY_KEY
 ```
 
 ## 本地开发
@@ -60,10 +71,12 @@ npm run deploy
 ```text
 SUPPLIER_ID       SKG 分配的供应方 ID
 SKG_CALLBACK_URL  SKG 支付回调地址
-PAYMENT_PAGE_URL  供应方自己的支付页面地址
+EPAY_PID          易支付商户 ID
+EPAY_TYPE         默认易支付支付方式
+SITE_NAME         支付页面显示的站点名称
 ```
 
-`SKG_CALLBACK_SECRET` 必须保存为 Cloudflare Secret。
+`SKG_CALLBACK_SECRET` 和 `EPAY_KEY` 必须保存为 Cloudflare Secret。
 
 ## 回传给 SKG 的标准格式
 

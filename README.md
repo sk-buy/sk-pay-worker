@@ -8,14 +8,24 @@ Cloudflare Workers payment bridge for SKG / sk-buy ecosystem.
 
 This worker lets a small supplier connect their own payment page to SKG without giving payment secrets to SKG.
 
+SKG controls the payment gateway URL and signs each payment request. The worker only stores supplier-side payment parameters such as EPay merchant ID and merchant key.
+
 ## One-click Deploy
 
 Click the button above and fill in the values copied from SKG:
 
 ```text
 SUPPLIER_ID
-PAYMENT_PAGE_URL
 SKG_CALLBACK_SECRET
+```
+
+Then fill in your own EPay parameters:
+
+```text
+EPAY_PID
+EPAY_KEY
+EPAY_TYPE
+SITE_NAME
 ```
 
 `SKG_CALLBACK_URL` can usually keep the default value.
@@ -32,7 +42,7 @@ If it returns `{"ok":true}`, copy the Worker URL back to SKG.
 
 ```text
 GET  /health
-GET  /pay?order_id=...&amount=...&sig=...
+GET  /pay?order_id=...&amount=...&payment_url=...&notify_url=...&sig=...
 POST /callback/:provider
 ```
 
@@ -40,6 +50,7 @@ POST /callback/:provider
 
 ```bash
 wrangler secret put SKG_CALLBACK_SECRET
+wrangler secret put EPAY_KEY
 ```
 
 ## Local Dev
@@ -60,10 +71,12 @@ npm run deploy
 ```text
 SUPPLIER_ID       Supplier ID from SKG
 SKG_CALLBACK_URL  SKG payment callback endpoint
-PAYMENT_PAGE_URL  Supplier payment page URL
+EPAY_PID          EPay merchant ID
+EPAY_TYPE         Default EPay payment type
+SITE_NAME         Site name shown on payment page
 ```
 
-`SKG_CALLBACK_SECRET` must be stored as a Cloudflare secret.
+`SKG_CALLBACK_SECRET` and `EPAY_KEY` must be stored as Cloudflare secrets.
 
 ## Callback Format Sent To SKG
 

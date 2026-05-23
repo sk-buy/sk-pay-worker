@@ -12,8 +12,16 @@ Fill in the values copied from SKG:
 
 ```text
 SUPPLIER_ID
-PAYMENT_PAGE_URL
 SKG_CALLBACK_SECRET
+```
+
+Then fill in your own EPay parameters:
+
+```text
+EPAY_PID
+EPAY_KEY
+EPAY_TYPE
+SITE_NAME
 ```
 
 Keep `SKG_CALLBACK_URL` unchanged unless SKG gives you another callback URL.
@@ -53,7 +61,9 @@ npx wrangler secret put SKG_CALLBACK_SECRET
   "vars": {
     "SUPPLIER_ID": "your-skg-supplier-id",
     "SKG_CALLBACK_URL": "https://skg.sk-buy.com/api/skg/payment/callback",
-    "PAYMENT_PAGE_URL": "https://your-payment-site.example.com/order"
+    "EPAY_PID": "your-epay-pid",
+    "EPAY_TYPE": "alipay",
+    "SITE_NAME": "SKG"
   }
 }
 ```
