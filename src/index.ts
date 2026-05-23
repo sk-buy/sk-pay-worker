@@ -249,6 +249,42 @@ function renderHomePage(origin: string, configured: boolean) {
 </html>`);
 }
 
+function renderPaymentReturnPage(request: Request) {
+  const url = new URL(request.url);
+  const status = url.searchParams.get("trade_status") || "";
+  const orderId = url.searchParams.get("out_trade_no") || "";
+  const tradeNo = url.searchParams.get("trade_no") || "";
+  const paid = status === "TRADE_SUCCESS";
+  const escaped = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+
+  return html(`<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SK Pay Worker 支付结果</title>
+  <style>
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a}
+    main{max-width:760px;margin:0 auto;padding:42px 18px}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 12px 34px rgba(15,23,42,.07);padding:26px}
+    h1{font-size:24px;margin:0 0 12px}
+    p{color:#475569;line-height:1.75;margin:8px 0}
+    code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:2px 6px;word-break:break-all}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>${paid ? "支付成功" : "支付结果待确认"}</h1>
+      <p>订单号：<code>${escaped(orderId)}</code></p>
+      <p>平台流水：<code>${escaped(tradeNo)}</code></p>
+      <p>该页面是同步返回结果，最终状态以异步通知入账为准。</p>
+    </div>
+  </main>
+</body>
+</html>`);
+}
+
 function normalizeStatus(value: string): NormalizedPayment["status"] {
   const status = value.toLowerCase();
   if (["paid", "success", "trade_success", "complete", "completed"].includes(status)) return "paid";
@@ -563,6 +599,10 @@ export default {
       if (url.pathname === "/") {
         const config = await getPayConfig(env);
         return renderHomePage(url.origin, Boolean(config.epayPid && config.epayKey && config.epayUrl));
+      }
+
+      if (url.pathname === "/return") {
+        return renderPaymentReturnPage(request);
       }
 
       if (url.pathname === "/admin") {
