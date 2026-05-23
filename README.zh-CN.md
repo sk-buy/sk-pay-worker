@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-[![部署到 Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/sk-buy/pay-worker)
+[![部署到 Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/sk-buy/sk-pay-worker)
 
 SKG / sk-buy 生态的 Cloudflare Workers 支付桥接器。
 
@@ -41,14 +41,22 @@ https://你的-worker-name.你的账号.workers.dev/admin
 EPAY_PID
 EPAY_KEY
 EPAY_URL
-验证文件路径
-验证文件内容
+验证文件路径，例如 /kpay-domain-verification.txt
+验证文件内容，例如 kpay-domain-verification=plyjY7phyKZstUuFKx0XtYBh
 ```
+
+也可以直接上传 EPay 提供的 txt 验证文件，Worker 会自动读取文件名和内容。
 
 EPay 授权域名填写：
 
 ```text
 你的-worker-name.你的账号.workers.dev
+```
+
+保存验证文件后，可以访问：
+
+```text
+https://你的-worker-name.你的账号.workers.dev/kpay-domain-verification.txt
 ```
 
 ## 接口

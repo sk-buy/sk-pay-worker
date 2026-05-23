@@ -5,7 +5,7 @@
 Open:
 
 ```text
-https://deploy.workers.cloudflare.com/?url=https://github.com/sk-buy/pay-worker
+https://deploy.workers.cloudflare.com/?url=https://github.com/sk-buy/sk-pay-worker
 ```
 
 After deployment, visit:

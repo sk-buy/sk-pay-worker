@@ -166,14 +166,15 @@ function renderAdminPage(config: RuntimePayConfig, origin: string, bound: boolea
     <div class="card">
       <h1>SK Pay Worker 设置</h1>
       <p class="muted">将 EPay 授权域名填写为：<code>${origin.replace(/^https?:\/\//, "")}</code>。${bound ? "此 Worker 已绑定 SKG，后续访问设置页需要 SKG 商户 ID。" : "绑定 SKG 前，设置页无需密码。"}</p>
-      <form method="post" action="/api/config">
+      <form method="post" action="/api/config" enctype="multipart/form-data">
         <div class="grid">
           <label>EPAY_PID<input name="epayPid" value="${escaped(config.epayPid)}" required /></label>
           <label>EPAY_KEY<input name="epayKey" value="" placeholder="${config.epayKey ? "已加密保存，留空则不修改" : "请输入 EPAY_KEY"}" ${config.epayKey ? "" : "required"} /></label>
         </div>
         <label>EPAY_URL<input name="epayUrl" value="${escaped(config.epayUrl)}" placeholder="https://pay.example.com/submit.php" required /></label>
-        <label>验证文件路径<input name="verifyPath" value="${escaped(config.verifyPath)}" placeholder="/abcdef.txt" /></label>
-        <label>验证文件内容<textarea name="verifyContent">${escaped(config.verifyContent)}</textarea></label>
+        <label>验证文件路径<input name="verifyPath" value="${escaped(config.verifyPath)}" placeholder="/kpay-domain-verification.txt" /></label>
+        <label>验证文件内容<textarea name="verifyContent" placeholder="kpay-domain-verification=plyjY7phyKZstUuFKx0XtYBh">${escaped(config.verifyContent)}</textarea></label>
+        <label>直接上传验证文件<input name="verifyFile" type="file" accept=".txt,text/plain" /></label>
         <input type="hidden" name="token" value="" />
         <button type="submit">保存设置</button>
       </form>
@@ -182,6 +183,13 @@ function renderAdminPage(config: RuntimePayConfig, origin: string, bound: boolea
   <script>
     const token = new URLSearchParams(location.search).get("token") || "";
     document.querySelector('input[name="token"]').value = token;
+    const fileInput = document.querySelector('input[name="verifyFile"]');
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      document.querySelector('input[name="verifyPath"]').value = "/" + file.name.replace(/^\\/+/, "");
+      document.querySelector('textarea[name="verifyContent"]').value = await file.text();
+    });
   </script>
 </body>
 </html>`);
@@ -476,6 +484,13 @@ async function handleSaveConfig(request: Request, env: Env) {
   const encryptedKey = nextEpayKey
     ? await encryptSecret(env, nextEpayKey)
     : { encrypted: current.encryptedEpayKey, iv: current.epayKeyIv };
+  const verifyFile = form.get("verifyFile") as unknown;
+  const fileCandidate = verifyFile as { size?: number; name?: string; text?: () => Promise<string> } | null;
+  const uploadedVerifyFile = fileCandidate?.size && fileCandidate.name && fileCandidate.text
+    ? { name: fileCandidate.name, text: fileCandidate.text }
+    : null;
+  const uploadedVerifyContent = uploadedVerifyFile ? await uploadedVerifyFile.text() : "";
+  const uploadedVerifyPath = uploadedVerifyFile ? `/${uploadedVerifyFile.name.replace(/^\/+/, "")}` : "";
 
   const config: PayConfig = {
     adminToken: current.adminToken,
@@ -483,8 +498,8 @@ async function handleSaveConfig(request: Request, env: Env) {
     encryptedEpayKey: encryptedKey.encrypted,
     epayKeyIv: encryptedKey.iv,
     epayUrl: String(form.get("epayUrl") || "").trim(),
-    verifyPath: String(form.get("verifyPath") || "").trim(),
-    verifyContent: String(form.get("verifyContent") || ""),
+    verifyPath: uploadedVerifyPath || String(form.get("verifyPath") || "").trim(),
+    verifyContent: uploadedVerifyContent || String(form.get("verifyContent") || ""),
   };
 
   if (!config.epayPid) return badRequest("EPAY_PID is required");

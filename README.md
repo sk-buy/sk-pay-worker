@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/sk-buy/pay-worker)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/sk-buy/sk-pay-worker)
 
 Cloudflare Workers payment bridge for SKG / sk-buy ecosystem.
 
@@ -41,14 +41,22 @@ Fill in:
 EPAY_PID
 EPAY_KEY
 EPAY_URL
-verification file path
-verification file content
+verification file path, for example /kpay-domain-verification.txt
+verification file content, for example kpay-domain-verification=plyjY7phyKZstUuFKx0XtYBh
 ```
+
+You can also upload the txt verification file directly. The worker will read the file name and content automatically.
 
 Use this as the EPay authorized domain:
 
 ```text
 your-worker-name.your-account.workers.dev
+```
+
+After saving the verification file, open:
+
+```text
+https://your-worker-name.your-account.workers.dev/kpay-domain-verification.txt
 ```
 
 ## Routes
