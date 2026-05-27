@@ -252,15 +252,19 @@ function renderHomePage(origin: string, configured: boolean) {
 </html>`);
 }
 
-function renderPaymentReturnPage(request: Request) {
+async function renderPaymentReturnPage(request: Request) {
   const url = new URL(request.url);
   const status = url.searchParams.get("trade_status") || "";
   const orderId = url.searchParams.get("out_trade_no") || "";
   const tradeNo = url.searchParams.get("trade_no") || "";
   const paid = status === "TRADE_SUCCESS";
   const skgReturnUrl = new URL(DEFAULT_SKG_RETURN_URL);
+  const skgCallbackUrl = url.searchParams.get("skg_callback_url") || DEFAULT_SKG_CALLBACK_URL;
   for (const [key, value] of url.searchParams.entries()) {
     skgReturnUrl.searchParams.set(key, value);
+  }
+  if (paid && orderId) {
+    await forwardToSkg(normalizePayment("epay_return", Object.fromEntries(url.searchParams.entries())), skgCallbackUrl).catch(() => null);
   }
   const escaped = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
   const escapedReturnUrl = escaped(skgReturnUrl.toString());
@@ -612,7 +616,7 @@ export default {
       }
 
       if (url.pathname === "/return") {
-        return renderPaymentReturnPage(request);
+        return await renderPaymentReturnPage(request);
       }
 
       if (url.pathname === "/admin") {
